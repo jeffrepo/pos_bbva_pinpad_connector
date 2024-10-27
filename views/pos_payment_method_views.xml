@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pinpad_pos_payment_method_view_form" model="ir.ui.view">
+        <field name="name">pinpad.pos.payment.method.view.form</field>
+        <field name="model">pos.payment.method</field>
+        <field name="inherit_id" ref="point_of_sale.pos_payment_method_view_form"/>
+        <field name="arch" type="xml">
+            <group name="Payment methods" position="after">
+                <group string="" name="pinpad_fields">
+                    <!-- Grupo para Configuración de Conexión -->
+                    <group name="connection_settings" string="Configuración de Conexión">
+                        <field name="pinpad_ip"/>
+                        <field name="pinpad_port"/>
+                        <field name="pinpad_timeout"/>
+                        <field name="pinpad_message"/>
+                        <field name="pinpad_contactless"/>
+                        <field name="host_url"/>
+                        <button name="configure_pinpad" type="object" string="Probar configuración"/>
+                        <!-- <field name="bines_url"/>
+                        <field name="token_url"/>
+                        <field name="tele_load_url"/> -->
+                    </group>
+
+                    <!-- Grupo para Detalles del Comercio -->
+                    <group name="trade_details" string="Detalles del Comercio">
+                        <field name="warranty_feature"/>
+                        <field name="moto_feature"/>
+                        <field name="merchant_affiliation"/>
+                        <field name="merchant_terminal"/>
+                        <field name="merchant_mac"/>
+                        <field name="application_id"/>
+                        <field name="secret_key"/>
+                    </group>
+
+                </group>
+            </group>
+        </field>
+    </record>
+</odoo>
