@@ -49,7 +49,11 @@ class PoSPaymentMethod(models.Model):
                 "secret_key": self.secret_key
             }
 
-            # Supongamos que la API requiere un POST para configurar
+            self.setConfiguracion()
+            self.inicializar()
+
+
+            #Omitir todo esto es solo para probar si funcionaban las URL de prueba
             response = requests.post(self.host_url + "/set_configuration", json=configuration)
             
             if response.status_code == 200:
@@ -63,19 +67,7 @@ class PoSPaymentMethod(models.Model):
 
     
     def setConfiguracion(self, configuracion):
+        return configuracion
+    def inicializar(self):
+        return True
         
-
-        
-    def initialize_pinpad(self):
-        # Inicialización del Pin Pad
-        try:
-            response = requests.post(self.host_url + "/initialize_pinpad")
-            
-            if response.status_code == 200:
-                return True
-            else:
-                print("Error al inicializar el Pin Pad: ", response.text)
-                return False
-        except Exception as e:
-            print("Excepción al inicializar el Pin Pad: ", str(e))
-            return False
