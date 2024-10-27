@@ -49,7 +49,7 @@ class PoSPaymentMethod(models.Model):
                 "secret_key": self.secret_key
             }
 
-            self.setConfiguracion()
+            self.setConfiguracion(configuration)
             self.inicializar()
 
 
