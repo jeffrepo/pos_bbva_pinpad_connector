@@ -40,4 +40,14 @@
     'demo': [
         'demo/demo.xml',
     ],
+    'installable': True,
+    'auto_install': False,
+    'assets': {
+        'point_of_sale.assets': [
+            'pos_bbva_pinpad_connector/static/src/js/Screens/PaymentScreen/PaymentScreen.js',
+            # 'pos_bbva_pinpad_connector/static/src/js/models.js',
+            'pos_bbva_pinpad_connector/static/src/js/payment_total_pos.js',
+            'pos_bbva_pinpad_connector/static/src/js/total_pos_connector.js',
+        ]
+    },
 }
