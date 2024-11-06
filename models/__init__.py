@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# from . import models
 from . import pos_payment_method
+from . import pos_order
+from . import totalpos_transaction

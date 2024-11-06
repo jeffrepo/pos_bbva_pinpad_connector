@@ -4,8 +4,10 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 import requests, json
+import logging
+_logger = logging.getLogger(__name__)
 
-class PoSPaymentMethod(models.Model):
+class PosPaymentMethod(models.Model):
     _inherit = 'pos.payment.method'
 
     pinpad_ip = fields.Char(string="IP del Pin Pad", help="Dirección IP del Pin Pad")
@@ -106,30 +108,76 @@ class PoSPaymentMethod(models.Model):
             # Manejo de errores de conexión o autenticación
             raise UserError(f"Error al obtener el token: {e}")
 
-    def proxy_netpay_request(self, data, operation):
-        print('proxy_netpay_request')
 
-        return self._proxy_netpay_request_direct(data, operation)
-    
-    def _proxy_netpay_request_direct(self, data, operation):
-        print('Function _proxy_netpay_request_direct')
+    def proxy_totalPOS_request(self, data, operation):
+        print('proxy_totalPOS_request')
+
+        return self._proxy_totalPOS_request_direct(data, operation)
+
+    def _get_totalPOS_endpoints(self, operation):
+        url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones"
+        if operation == 'sale':
+            url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones/sale"
+        if operation == 'cancel':
+            url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones/cancel"
+        if operation == 'reprint':
+            url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones/reprint"
+
+        return url
+
+    def get_latest_totalPOS_status(self, pos_config_name, order_uid):
+        print('Función get_latest_adyen_status')
+        _logger.info('get_latest_adyen_status\n%s', pos_config_name)
+        self.ensure_one()
+
+        latest_response = self.sudo().totalPOS_latest_response
+
+        print('latest_response, cruzar dedos')
+        print(latest_response)
+        latest_response = json.loads(latest_response) if latest_response else False
+
+#         print(latest_response[0])
+        print('')
+        if latest_response != False:
+            if "folioNumber" in latest_response:
+
+#             latest_response_dumps=json.dumps(latest_response)
+                if order_uid == latest_response['folioNumber']:
+                    print('Si son iguales')
+
+
+                else:
+                    print('No es Igual llllllllllll')
+                    latest_response = False
+        print('Antes del return :::C')
+        print(latest_response)
+        return {
+            'latest_response': latest_response,
+        }
+
+    def _is_write_forbidden(self, fields):
+        whitelisted_fields = set(('totalPOS_latest_response', 'totalPOS_latest_diagnosis'))
+        return super(PosPaymentMethod, self)._is_write_forbidden(fields - whitelisted_fields)
+
+    def _proxy_totalPOS_request_direct(self, data, operation):
+        print('Function _proxy_totalPOS_request_direct')
         print(self)
         for x in self:
             x.ensure_one()
         TIMEOUT = 10
-        print('_proxy_netpay_request_direct')
+        print('_proxy_totalPOS_request_direct')
         print('request to adyen\n%s' + str(data))
 
         #environment = 'test' if self.adyen_test_mode else 'live'
 
         refresh_token_config = False
         if operation == 'sale':
-            endpoint = self._get_netpay_endpoints(operation)
+            endpoint = self._get_totalPOS_endpoints(operation)
             if 'traceability' in data and data['traceability'] and 'access_token' in data['traceability'] and data['traceability']['access_token']:
                 refresh_token_config = data['traceability']['access_token']
             headers = {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer '+str(refresh_token_config)
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer '+str(refresh_token_config)
             }
             traceability_dic = {}
             serial_number = False
@@ -161,19 +209,21 @@ class PoSPaymentMethod(models.Model):
                     'serial_number':serial_number
                 }
             }
-            
+            print('endpoint--')
+            print(endpoint)
+            print(json_data)
+            print('...........')
+            print('')
+            print('')
             req = requests.post(endpoint, data = json.dumps(json_data), headers = headers)
+            print('Request---------1')
+            print(req)
+            print(req.content)
             
-
-
             if req.status_code == 200:
                 if req.content:
                     response_content = req.content.decode('utf8')
                     response_json = json.loads(response_content)
-                    # if 'access_token' in response_json:
-                    #     self.access_token = response_json['access_token']
-                    # if 'refresh_token' in response_json:
-                    #     self.refresh_token = response_json['refresh_token']
                     print('status code')
                     print(req.status_code)
                     return True
@@ -207,7 +257,7 @@ class PoSPaymentMethod(models.Model):
             return req.json()
 
         if operation == 'cancel':
-            endpoint = self._get_netpay_endpoints(operation)
+            endpoint = self._get_totalPOS_endpoints(operation)
             print('Bienvenido a una función con opcion cancel')
             if ("traceability" and "serialNumber" and "orderId" and "storeId") in data:
                 refresh_token_config = False
@@ -215,8 +265,8 @@ class PoSPaymentMethod(models.Model):
             if 'traceability' in data and data['traceability'] and 'refresh_token' in data['traceability'] and data['traceability']['refresh_token']:
                 refresh_token_config = data['traceability']['refresh_token']
             headers = {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer '+str(refresh_token_config)
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer '+str(refresh_token_config)
             }
             serial_number = False
             if "serialNumber" in data:
@@ -277,7 +327,7 @@ class PoSPaymentMethod(models.Model):
             return req.json()
 
         if operation == 'reprint':
-            endpoint = self._get_netpay_endpoints(operation)
+            endpoint = self._get_totalPOS_endpoints(operation)
             print('Bienvenido a una función con opcion reprint')
             if ("traceability" and "serialNumber" and "orderId" and "storeId") in data:
                 refresh_token_config = False
@@ -285,8 +335,8 @@ class PoSPaymentMethod(models.Model):
             if 'traceability' in data and data['traceability'] and 'refresh_token' in data['traceability'] and data['traceability']['refresh_token']:
                 refresh_token_config = data['traceability']['refresh_token']
             headers = {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer '+str(refresh_token_config)
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer '+str(refresh_token_config)
             }
             serial_number = False
             if "serialNumber" in data:
@@ -345,3 +395,4 @@ class PoSPaymentMethod(models.Model):
                     }
 
             return req.json()
+    

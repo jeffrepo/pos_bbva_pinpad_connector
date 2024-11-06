@@ -33,7 +33,7 @@
 
     # always loaded
     'data': [
-        # 'security/ir.model.access.csv',
+        'security/ir.model.access.csv',
         'views/pos_payment_method_views.xml',        
     ],
     # only loaded in demonstration mode
@@ -42,7 +42,7 @@
     ],
     'assets': {
         'point_of_sale.assets': [
-            'pos_bbva_pinpad_connector/static/src/js/Screens/PaymentScreen/PaymentScreen.js',
+            # 'pos_bbva_pinpad_connector/static/src/js/Screens/PaymentScreen/PaymentScreen.js',
             'pos_bbva_pinpad_connector/static/src/js/payment_total_pos.js',
             'pos_bbva_pinpad_connector/static/src/js/total_pos_connector.js',
         ]
