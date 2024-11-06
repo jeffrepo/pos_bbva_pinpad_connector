@@ -19,7 +19,7 @@
     """,
 
     'author': "Geordie Castaneda",
-    'website': "",
+    'website': "SISPAV",
 
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/15.0/odoo/addons/base/data/ir_module_category_data.xml
@@ -29,7 +29,7 @@
     'license': 'LGPL-3',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'sale', 'point_of_sale'],
+    'depends': ['base', 'point_of_sale'],
 
     # always loaded
     'data': [
@@ -40,14 +40,13 @@
     'demo': [
         'demo/demo.xml',
     ],
-    'installable': True,
-    'auto_install': False,
     'assets': {
         'point_of_sale.assets': [
             'pos_bbva_pinpad_connector/static/src/js/Screens/PaymentScreen/PaymentScreen.js',
-            # 'pos_bbva_pinpad_connector/static/src/js/models.js',
             'pos_bbva_pinpad_connector/static/src/js/payment_total_pos.js',
             'pos_bbva_pinpad_connector/static/src/js/total_pos_connector.js',
         ]
     },
+    'installable': True,
+    'auto_install': False,
 }

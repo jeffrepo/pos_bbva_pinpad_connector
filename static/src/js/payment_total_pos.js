@@ -10,6 +10,7 @@ odoo.define('pos_bbva_pinpad_connector.payment', function(require) {
          var PaymentTotalPOS = PaymentInterface.extend({
 
             send_payment_request: function(cid) {
+                console.log("Desde nuevo model")
                 this._super.apply(this, arguments);
                 var line = this.pos.get_order().selected_paymentline;
                 var order = this.pos.get_order();

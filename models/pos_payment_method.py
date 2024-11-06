@@ -2,7 +2,8 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import models, fields, api, _
-import requests
+from odoo.exceptions import UserError, ValidationError
+import requests, json
 
 class PoSPaymentMethod(models.Model):
     _inherit = 'pos.payment.method'
@@ -14,7 +15,7 @@ class PoSPaymentMethod(models.Model):
     pinpad_contactless = fields.Boolean(string="Contactless Habilitado", help="Habilitar/deshabilitar pagos sin contacto")
     host_url = fields.Char(string="URL del Host", help="URL base del SDK de TOTAL POS")
     # bines_url = fields.Char(string="URL de Bines", help="URL para actualización de bines")
-    # token_url = fields.Char(string="URL del Token", help="URL para obtener el token de autenticación")
+    token_url = fields.Char(string="URL del Token", help="URL para obtener el token de autenticación")
     # tele_load_url = fields.Char(string="URL de Telecarga", help="URL para telecargar actualizaciones")
     warranty_feature = fields.Boolean(string="Funcionalidad de Garantía", help="Activar funcionalidad de garantía")
     moto_feature = fields.Boolean(string="Funcionalidad Moto", help="Activar funcionalidad Moto")
@@ -70,4 +71,277 @@ class PoSPaymentMethod(models.Model):
         return configuracion
     def inicializar(self):
         return True
+    
+
+    # @api.model
+    def get_token(self):
+        """
+        Método para autenticarse y obtener el token de acceso.
+        """
+        if not self.token_url or not self.application_id or not self.secret_key:
+            raise ValueError("URL del Token, ID de Aplicación o Clave Secreta no configurados.")
         
+        url = self.token_url
+        payload = {
+            'client_id': self.application_id,
+            'client_secret': self.secret_key,
+            'grant_type': 'client_credentials'  # Dependiendo de los requerimientos de autenticación
+        }
+        
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        
+        try:
+            # Realizar solicitud POST para obtener el token
+            response = requests.post(url, data=payload, headers=headers)
+            response.raise_for_status()  # Lanza un error si la respuesta tiene un código de error
+            
+            # Procesar respuesta
+            data = response.json()
+            self.access_token = data.get("access_token")
+            return self.access_token
+        
+        except requests.exceptions.RequestException as e:
+            # Manejo de errores de conexión o autenticación
+            raise UserError(f"Error al obtener el token: {e}")
+
+    def proxy_netpay_request(self, data, operation):
+        print('proxy_netpay_request')
+
+        return self._proxy_netpay_request_direct(data, operation)
+    
+    def _proxy_netpay_request_direct(self, data, operation):
+        print('Function _proxy_netpay_request_direct')
+        print(self)
+        for x in self:
+            x.ensure_one()
+        TIMEOUT = 10
+        print('_proxy_netpay_request_direct')
+        print('request to adyen\n%s' + str(data))
+
+        #environment = 'test' if self.adyen_test_mode else 'live'
+
+        refresh_token_config = False
+        if operation == 'sale':
+            endpoint = self._get_netpay_endpoints(operation)
+            if 'traceability' in data and data['traceability'] and 'access_token' in data['traceability'] and data['traceability']['access_token']:
+                refresh_token_config = data['traceability']['access_token']
+            headers = {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer '+str(refresh_token_config)
+            }
+            traceability_dic = {}
+            serial_number = False
+            if 'serialNumber' in data:
+                serial_number=data['serialNumber']
+            store_id = False
+            if 'storeId' in data:
+                store_id = data['storeId']
+            amount=False
+            if 'amount' in data:
+                amount = data['amount']
+            folio_number = False
+            if 'folioNumber' in data:
+                folio_number = data['folioNumber']
+
+            serial_number = False
+            if "traceability" in data:
+                if "serial_number" in data["traceability"]:
+                    serial_number = data["traceability"]["serial_number"]
+
+            json_data = {
+                'serialNumber': serial_number,
+                'amount': amount,
+                'storeId': store_id,
+                'folioNumber': folio_number,
+                'msi': "",
+                "traceability": {
+                    'type':'sale',
+                    'serial_number':serial_number
+                }
+            }
+            
+            req = requests.post(endpoint, data = json.dumps(json_data), headers = headers)
+            
+
+
+            if req.status_code == 200:
+                if req.content:
+                    response_content = req.content.decode('utf8')
+                    response_json = json.loads(response_content)
+                    # if 'access_token' in response_json:
+                    #     self.access_token = response_json['access_token']
+                    # if 'refresh_token' in response_json:
+                    #     self.refresh_token = response_json['refresh_token']
+                    print('status code')
+                    print(req.status_code)
+                    return True
+
+
+            if req.status_code != 200:
+                response_content = req.content.decode('utf8')
+                print('error')
+                print(response_content)
+                json_loads = json.loads(response_content)
+                if "error_description" in json_loads:
+                    print('Entro al IF?')
+                    return {
+                        'error':{
+                            'status_code': req.status_code,
+                            'message': json_loads["error_description"],
+
+                        }
+                    }
+                
+                if "message" in json_loads:
+                    print('entra message no error_description')
+                    return {
+                        'error':{
+                            'status_code': req.status_code,
+                            'message': json_loads["message"],
+
+                        }
+                    }
+
+            return req.json()
+
+        if operation == 'cancel':
+            endpoint = self._get_netpay_endpoints(operation)
+            print('Bienvenido a una función con opcion cancel')
+            if ("traceability" and "serialNumber" and "orderId" and "storeId") in data:
+                refresh_token_config = False
+
+            if 'traceability' in data and data['traceability'] and 'refresh_token' in data['traceability'] and data['traceability']['refresh_token']:
+                refresh_token_config = data['traceability']['refresh_token']
+            headers = {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer '+str(refresh_token_config)
+            }
+            serial_number = False
+            if "serialNumber" in data:
+                serial_number = data["serialNumber"]
+            order_id = False
+            if "orderId" in data:
+                order_id = data["orderId"]
+            if "storeId" in data:
+                store_id = data["storeId"]
+
+
+            json_data = {
+                "traceability": {
+                    "cancel": True,
+                    'type': 'cancel'
+                },
+                "serialNumber": str(serial_number),
+                "orderId": str(order_id),
+                "storeId": str(store_id),
+            }
+
+            print('endpoint--')
+            print(endpoint)
+            print(json_data)
+            print('...........')
+            print('')
+            print('')
+            req = requests.post(endpoint, data = json.dumps(json_data), headers = headers)
+            print('Request---------2 cancel')
+            print(req)
+            print(req.content)
+
+            if req.status_code == 200:
+                if req.content:
+                    response_content = req.content.decode('utf8')
+                    response_json = json.loads(response_content)
+                    print('status code')
+                    print(req.status_code)
+                    return True
+
+            if req.status_code != 200:
+                response_content = req.content.decode('utf8')
+                print('error')
+                print(response_content)
+                print(response_content[0])
+                json_loads = json.loads(response_content)
+                if "error_description" in json_loads:
+                    print('Entro al IF?')
+                    print(json_loads["error_description"])
+                    return {
+                        'error':{
+                            'status_code': req.status_code,
+                            'message': json_loads["error_description"],
+
+                        }
+                    }
+
+            return req.json()
+
+        if operation == 'reprint':
+            endpoint = self._get_netpay_endpoints(operation)
+            print('Bienvenido a una función con opcion reprint')
+            if ("traceability" and "serialNumber" and "orderId" and "storeId") in data:
+                refresh_token_config = False
+
+            if 'traceability' in data and data['traceability'] and 'refresh_token' in data['traceability'] and data['traceability']['refresh_token']:
+                refresh_token_config = data['traceability']['refresh_token']
+            headers = {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer '+str(refresh_token_config)
+            }
+            serial_number = False
+            if "serialNumber" in data:
+                serial_number = data["serialNumber"]
+            order_id = False
+            if "orderId" in data:
+                order_id = data["orderId"]
+            if "storeId" in data:
+                store_id = data["storeId"]
+
+
+            json_data = {
+                "traceability": {
+                    "reprint": True,
+                    "type": 'reprint'
+                },
+                "serialNumber": str(serial_number),
+                "orderId": str(order_id),
+                "storeId": str(store_id),
+            }
+
+            print('endpoint--')
+            print(endpoint)
+            print(json_data)
+            print('...........')
+            print('')
+            print('')
+            req = requests.post(endpoint, data = json.dumps(json_data), headers = headers)
+            print('Request---------2 reprint')
+            print(req)
+            print(req.content)
+
+            if req.status_code == 200:
+                if req.content:
+                    response_content = req.content.decode('utf8')
+                    response_json = json.loads(response_content)
+                    print('status code')
+                    print(req.status_code)
+                    return True
+
+            if req.status_code != 200:
+                response_content = req.content.decode('utf8')
+                print('error')
+                print(response_content)
+                print(response_content[0])
+                json_loads = json.loads(response_content)
+                if "error_description" in json_loads:
+                    print('Entro al IF?')
+                    print(json_loads["error_description"])
+                    return {
+                        'error':{
+                            'status_code': req.status_code,
+                            'message': json_loads["error_description"],
+
+                        }
+                    }
+
+            return req.json()

@@ -15,10 +15,11 @@
                         <field name="pinpad_message"/>
                         <field name="pinpad_contactless"/>
                         <field name="host_url"/>
-                        <button name="configure_pinpad" type="object" string="Probar configuración"/>
-                        <!-- <field name="bines_url"/>
+                        <!-- <field name="bines_url"/> -->
                         <field name="token_url"/>
-                        <field name="tele_load_url"/> -->
+                        <!-- <field name="tele_load_url"/> -->
+                        <button name="configure_pinpad" type="object" string="Probar configuración"/>
+                        <button name="get_token" type="object" string="Obtener token"/>
                     </group>
 
                     <!-- Grupo para Detalles del Comercio -->

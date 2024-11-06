@@ -11,7 +11,7 @@ odoo.define('pos_bbva_pinpad_connector.PaymentScreen', function (require) {
             console.log('Hi Geordie ')
             var order = this.env.pos.get_order();
             console.log("order ", order);
-            console.lg()
+            // console.lg()
             return super.validateOrder(...arguments);
         }
     }
