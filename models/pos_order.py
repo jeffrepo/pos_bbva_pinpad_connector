@@ -47,7 +47,6 @@ class PosOrder(models.Model):
             print('encontro orden')
             print(order_id)
             if order_id:
-                print(order_id.order_totalPOS_id)
                 if orders[0] and 'data' in orders[0] and 'totalPOS_orderId' in orders[0]['data'] and 'orderId' in orders[0]['data']['totalPOS_orderId']:
                     order_id.order_totalPOS_id = orders[0]['data']['totalPOS_orderId']['orderId']
         order_totalPOS = False

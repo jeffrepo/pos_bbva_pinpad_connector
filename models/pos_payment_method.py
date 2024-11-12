@@ -74,7 +74,6 @@ class PosPaymentMethod(models.Model):
     def inicializar(self):
         return True
     
-
     # @api.model
     def get_token(self):
         """
@@ -109,6 +108,9 @@ class PosPaymentMethod(models.Model):
             raise UserError(f"Error al obtener el token: {e}")
 
 
+    def _get_payment_terminal_selection(self):
+          return super(PosPaymentMethod, self)._get_payment_terminal_selection() + [('totalPOS', 'totalPOS')]
+
     def proxy_totalPOS_request(self, data, operation):
         print('proxy_totalPOS_request')
 
@@ -117,7 +119,7 @@ class PosPaymentMethod(models.Model):
     def _get_totalPOS_endpoints(self, operation):
         url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones"
         if operation == 'sale':
-            url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones/sale"
+            url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones"
         if operation == 'cancel':
             url = "https://totalpostest.egl-cloud.com/totalpos/ws/autorizaciones/transacciones/cancel"
         if operation == 'reprint':
@@ -231,30 +233,46 @@ class PosPaymentMethod(models.Model):
 
             if req.status_code != 200:
                 response_content = req.content.decode('utf8')
-                print('error')
-                print(response_content)
-                json_loads = json.loads(response_content)
-                if "error_description" in json_loads:
-                    print('Entro al IF?')
+                print("Estado de respuesta:", req.status_code, "\n\n")
+                print("Contenido de respuesta:", req.content, "\n\n")
+                print("response_content ", response_content ,"\n\n\n")
+
+                if response_content:
+                    json_loads = json.loads(response_content)
+
+                    print("json_loads \n\n\n", json_loads)
+                    if "error_description" in json_loads:
+                        logging.warning('Entro al IF?')
+                        return {
+                            'error':{
+                                'status_code': req.status_code,
+                                'message': json_loads["error_description"],
+
+                            }
+                        }
+                    
+                    if "message" in json_loads:
+                        logging.warning('entra message no error_description')
+                        return {
+                            'error':{
+                                'status_code': req.status_code,
+                                'message': json_loads["message"],
+
+                            }
+                        }
+                    
+                if req.status_code == 401:
+                    print('Entro al IF 401 \n\n')
                     return {
                         'error':{
                             'status_code': req.status_code,
-                            'message': json_loads["error_description"],
-
-                        }
+                            'message': req.content,}
                     }
-                
-                if "message" in json_loads:
-                    print('entra message no error_description')
-                    return {
-                        'error':{
-                            'status_code': req.status_code,
-                            'message': json_loads["message"],
-
-                        }
-                    }
-
+                    
             return req.json()
+
+
+            
 
         if operation == 'cancel':
             endpoint = self._get_totalPOS_endpoints(operation)

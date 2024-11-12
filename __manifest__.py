@@ -34,7 +34,8 @@
     # always loaded
     'data': [
         'security/ir.model.access.csv',
-        'views/pos_payment_method_views.xml',        
+        'views/pos_payment_method_views.xml',
+        'views/res_config_settings_views.xml',        
     ],
     # only loaded in demonstration mode
     'demo': [
